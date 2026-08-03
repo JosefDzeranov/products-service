@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- База данных: EF Core + провайдер PostgreSQL -->
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
+
+    <!-- Redis для кэширования каталога -->
+    <PackageReference Include="StackExchange.Redis" Version="2.8.16" />
+
+    <!-- Визуальный интерфейс API (Scalar) и генерация OpenAPI-спеки -->
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.5" />
+    <PackageReference Include="Scalar.AspNetCore" Version="2.12.54" />
+    <!-- Прямой пин пропатченной версии, транзитивная из OpenApi содержит уязвимость -->
+    <PackageReference Include="Microsoft.OpenApi" Version="2.7.5" />
+  </ItemGroup>
+
+</Project>
