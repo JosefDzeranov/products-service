@@ -48,9 +48,9 @@ using (var scope = app.Services.CreateScope())
     if (!await db.Products.AnyAsync())
     {
         db.Products.AddRange(
-            new Product { Name = "Курс PRO C#", Price = 15000 },
-            new Product { Name = "Курс Docker", Price = 8000 },
-            new Product { Name = "Курс Kubernetes", Price = 12000 });
+            new Product { Name = "PRO C#. Основы программирования", Price = 2700 },
+            new Product { Name = "PRO C#. Docker", Price = 9900 },
+            new Product { Name = "PRO C#. Паттерны проектирования", Price = 19900 });
         await db.SaveChangesAsync();
     }
 }
