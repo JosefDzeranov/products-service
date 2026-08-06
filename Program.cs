@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using StackExchange.Redis;
@@ -38,6 +39,17 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+// Приложение стоит за обратным прокси nginx. Читаем настоящий адрес и схему из
+// заголовков X-Forwarded, которые шлет nginx. Без этого приложение думает, что его
+// адрес это внутреннее имя products-service:8080, и Scalar подставляет его в запросы.
+var forwardedOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+};
+forwardedOptions.KnownIPNetworks.Clear();   // доверяем прокси, нас фронтит только свой nginx
+forwardedOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedOptions);
 
 using (var scope = app.Services.CreateScope())
 {
