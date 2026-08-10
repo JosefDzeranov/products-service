@@ -42,4 +42,4 @@ jobs:
           script: |
             export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
             kubectl set image deployment/products-service products-service=ghcr.io/josefdzeranov/products-service:${{ github.sha }}
-            kubectl rollout status deployment/products-service --timeout=120s
+            kubectl rollout status deployment/products-service --timeout=300s
