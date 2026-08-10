@@ -9,35 +9,37 @@ permissions:
   packages: write
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      # Контекст сборки это корень репозитория, здесь лежит Dockerfile сервиса
-      - run: docker build -t ghcr.io/josefdzeranov/products-service:latest .
-      - run: docker push ghcr.io/josefdzeranov/products-service:latest
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      # Обновляем ТОЛЬКО свой контейнер. --no-deps не трогает db, redis и reviews-service,
-      # up -d пересоздает лишь products-service. Остальные сервисы работают нетронутыми.
-      # Это и есть независимая выкатка. Системный docker-compose.yml лежит на сервере, его
-      # кладет туда инфра-репозиторий dockercourse-deploy.
-      - name: Deploy products-service
+      # Иммутабельный тег = git SHA. ИМЕННО смена тега заставляет Kubernetes выкатить новый образ:
+      # apply/set-image с тем же :latest это no-op, роллаут не запускается и Pod тянет старый слой.
+      # :latest тоже пушим, он удобен для ручного kubectl и как дефолт в манифесте.
+      - name: Build & push
+        run: |
+          IMAGE=ghcr.io/josefdzeranov/products-service
+          docker build -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" .
+          docker push "$IMAGE:${{ github.sha }}"
+          docker push "$IMAGE:latest"
+
+      # Выкатка в k3s. Меняем образ Deployment на новый SHA, Kubernetes делает rolling update
+      # (заменяет Pod по одному, приложение не падает), ждём готовности, иначе job краснеет.
+      # KUBECONFIG нужен, чтобы обычный kubectl нашел конфиг k3s (root его читает).
+      - name: Deploy to k3s
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /root
-            docker compose pull products-service
-            docker compose up -d --no-deps products-service
-            docker image prune -f
+            export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+            kubectl set image deployment/products-service products-service=ghcr.io/josefdzeranov/products-service:${{ github.sha }}
+            kubectl rollout status deployment/products-service --timeout=120s
